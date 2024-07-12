@@ -219,4 +219,114 @@ Letter.prototype.step = function () {
             }
         }
 
-        if (this.tick > opts.letter
+        if (this.tick > opts.letterContemplatingWaitTime) {
+
+            this.phase = 'balloon';
+
+            this.spawned = false;
+            this.spawningTime = opts.balloonSpawnTime * Math.random() | 0;
+            this.inflatingTime = opts.balloonBaseInflateTime + opts.balloonAddedInflateTime * Math.random() | 0;
+            this.size = 0;
+            this.inflate = 0;
+            this.velY = opts.balloonBaseVel + opts.balloonAddedVel * Math.random();
+            this.complete = false;
+
+            this.radian = opts.balloonBaseRadian + opts.balloonAddedRadian * Math.random();
+        }
+    } else if (this.phase === 'balloon') {
+
+        if (!this.spawned) {
+
+            ++this.tick;
+            if (this.tick >= this.spawningTime) {
+
+                this.tick = 0;
+                this.spawned = true;
+            }
+
+        } else {
+
+            ++this.tick;
+
+            if (!this.complete) {
+
+                ++this.inflate;
+
+                var proportion = this.inflate / this.inflatingTime,
+                    x = proportion * this.sizeX,
+                    y = proportion * this.sizeY;
+
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x + x * Math.cos(this.radian), this.y + y * Math.sin(this.radian), this.size * proportion, 0, Tau);
+                ctx.fill();
+
+                if (this.inflate > this.inflatingTime) {
+
+                    this.inflate = 0;
+                    this.complete = true;
+                }
+            } else {
+
+                this.x += Math.cos(this.radian) * this.velX;
+                this.y += Math.sin(this.radian) * this.velY -= opts.upFlow;
+
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Tau);
+                ctx.fill();
+
+                if (this.y < -this.size) this.phase = 'done';
+            }
+        }
+    } else if (this.phase === 'done') {
+
+        this.reset();
+    }
+};
+
+function Shard(x, y, velX, velY, color) {
+
+    this.x = x;
+    this.y = y;
+    this.velX = velX * (opts.fireworkShardBaseVel + opts.fireworkShardAddedVel * Math.random());
+    this.velY = velY * (opts.fireworkShardBaseVel + opts.fireworkShardAddedVel * Math.random());
+    this.size = opts.fireworkShardBaseSize + opts.fireworkShardAddedSize * Math.random();
+    this.alpha = 1;
+    this.alphaReduction = .01;
+    this.color = color;
+    this.tick = 0;
+    this.tickMax = 100;
+    this.prevPoints = [];
+}
+
+Shard.prototype.step = function () {
+
+    this.velY += opts.gravity;
+    this.x += this.velX;
+    this.y += this.velY;
+
+    this.alpha -= this.alphaReduction;
+    ++this.tick;
+
+    if (this.tick >= this.tickMax)
+        this.alpha = 0;
+
+    this.prevPoints.push([this.x, this.y]);
+    if (this.prevPoints.length > opts.fireworkShardPrevPoints)
+        this.prevPoints.shift();
+};
+
+var text = opts.strings.join(''),
+
+    textSize = ctx.measureText(text).width,
+
+    middle = hw - textSize / 2,
+
+    height = opts.charSize + opts.lineHeight,
+
+    // for (var i = 0; i < text.length; ++i)
+    //     letters.push(new Letter(text[i], middle + opts.charSpacing * i, height));
+
+    for (var i = 0; i < text.length; ++i)
+        letters.push(new Letter(text[i], middle + opts.charSpacing * i, height));
